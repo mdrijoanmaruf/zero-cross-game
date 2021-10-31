@@ -1,0 +1,199 @@
+<!DOCTYPE html> 
+ <html lang="en">
+    <head> 
+        <meta charset="UTF-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Cross Zero game</title>
+        <style>
+            
+*, *::after, *::before{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body{
+    margin: 0;
+}
+:root{
+    --cell-width: 100px;
+    --mark-size: calc(var(--cell-width) * .9);
+} 
+
+.board{
+    width: 100vw;
+    height: 100vh;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+}
+.cell{
+    width: var(--cell-width);
+    height: var(--cell-width);
+    background-color: white;
+    border: 3px solid #009958;
+    justify-content: center;
+    position: relative;
+    align-items: center;
+    display: flex;
+    cursor: pointer;
+}
+.cell.x, .cell.circle{
+    cursor: not-allowed;
+}
+.cell:first-child, .cell:nth-child(2), .cell:nth-child(3){
+    border-top: none;
+}
+.cell:nth-child(3n +1){
+    border-left: none;
+}
+.cell:nth-child(3n +3){
+    border-right: none;
+}
+.cell:last-child,
+.cell:nth-child(8), 
+.cell:nth-child(7){
+    border-bottom: none;
+}
+.cell.x::before, .cell.x::after,
+.board.x .cell:hover:not(.x):not(.circle)::after,
+.board.x .cell:hover:not(.x):not(.circle)::before{
+    content: '';
+    position: absolute;
+    width: calc(var(--mark-size) * .15);
+    height: var(--mark-size);
+    background-color: #ff00ff;
+}
+.board.x .cell:hover:not(.x):not(.circle)::after,
+.board.x .cell:hover:not(.x):not(.circle)::before{
+    background-color: rgba(0, 0, 0, 0.486);
+}
+.cell.x::before,
+.board.x .cell:hover:not(.x):not(.circle)::before{
+    transform: rotate(45deg);
+}
+.cell.x::after,
+.board.x .cell:hover:not(.x):not(.circle)::after{
+    transform: rotate(-45deg);
+}
+.cell.circle::before, 
+.cell.circle::after,
+.board.circle .cell:hover:not(.x):not(.circle)::after,
+.board.circle .cell:hover:not(.x):not(.circle)::before{
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+}
+.cell.circle::before,
+.board.circle .cell:hover:not(.x):not(.circle)::before{
+    width: var(--mark-size);
+    height: var(--mark-size);
+    background-color: blue;
+}
+.board.circle .cell:hover:not(.x):not(.circle)::before{
+    background-color: lightgray;
+}
+.cell.circle::after,
+.board.circle .cell:hover:not(.x):not(.circle)::after{
+    width: calc(var(--mark-size) * .7);
+    height: calc(var(--mark-size) * .7);
+    background-color: white;
+}
+.board.circle .cell:hover:not(.x):not(.circle)::after{
+    background-color: white;
+}
+.warning{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 5rem;
+    flex-direction: column;
+    display: none;
+}
+.warning button{
+    font-size: 3rem;
+    background-color: #fff;
+    padding: .25em .5em;
+    cursor: pointer;
+    border-radius: 10px;
+}
+.warning button:hover{
+    background-color: black;
+    border-color: #fff;
+    color: white;
+}
+.warning.show{
+    display: flex;
+}
+        </style>
+    </head> 
+    <body>
+        <div class="board" id="board"> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> 
+        <div class="cell" data-cell></div> </div>
+        <div class="warning" id="warning"> 
+        <div data-wining-message-text id="winer" class="wining"></div> <button type="button" id="restart">Restart</button> </div> 
+     </body> 
+  </html> 
+      
+  <script> 
+        const winCombination = [ [0, 1 ,2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6] ];
+        const messageText = document.getElementById('winer');
+        const winBox = document.getElementById('warning');
+        const X_CLASS = 'x';
+        const CIRCLE_CLASS = 'circle';
+        const bt = document.getElementById("restart");
+        const cellElements = document.querySelectorAll('[data-cell]');
+        const board = document.getElementById('board');
+        let circleTurn;
+        startGame();
+        bt.addEventListener('click', startGame);
+        function startGame(){ circleTurn = false;
+        cellElements.forEach( cell => { cell.classList.remove(X_CLASS);
+        cell.classList.remove(CIRCLE_CLASS);
+        cell.removeEventListener('click', handleClick);
+        cell.addEventListener('click', handleClick, {once : true});
+         });
+         setBHover(); winBox.classList.remove('show') } function handleClick(e){ const cell = e.target; const currentclass = circleTurn ? CIRCLE_CLASS : X_CLASS;
+         placeMark(cell, currentclass);
+         if(checkWin(currentclass)){ endGame(false);
+         }else if(isDraw()){ endGame(true);
+         }else{ swapTurns();
+         setBHover();
+         } } function placeMark(cell, currentclass){ cell.classList.add(currentclass);
+          } function swapTurns(){ circleTurn = !circleTurn;
+          } function setBHover(){ board.classList.remove(X_CLASS);
+          board.classList.remove(CIRCLE_CLASS);
+          if(circleTurn){ board.classList.add(CIRCLE_CLASS) }
+          else{ board.classList.add(X_CLASS);
+           } } 
+          function checkWin(currentclass){
+          return winCombination.some(combination => { 
+          return combination.every(index => { 
+          return cellElements[index].classList.contains(currentclass) }) }) } 
+          function isDraw(){ 
+          return [...cellElements].every(cell =>{ 
+          return cell.classList.contains(X_CLASS) || cell.classList.contains(CIRCLE_CLASS) }) }
+          function endGame(draw){ 
+          if(draw){ messageText.innerText = 'Draw!' }
+          else{ messageText.innerText = `${circleTurn ? 'O' : X_CLASS} wins`;
+           }
+          winBox.classList.add('show');
+          } 
+  </script>
